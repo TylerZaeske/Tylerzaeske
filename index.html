@@ -8,9 +8,20 @@
 </head>
 <body>
 
-    <button id="save" onclick="saveToFile()">Save</button>
+    <button id="export" onclick="saveToFile()">Export</button>
+    <input id="filename" oninput="adjustWidthToContent(this)"></input><span id="extension">.markT</span>
+    <input type="file" id="import" onchange="importFile(this.files[0])"></input>
+    <div id="findReplaceModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <input id="findInput" type="text" placeholder="Find...">
+            <input id="replaceInput" type="text" placeholder="Replace with...">
+            <button onclick="findAndReplace()">Replace All</button>
+        </div>
+    </div>
     <div class="container">
     <textarea id="editor" placeholder="Type your MarkT here..."></textarea>
+    <div id="resizer" class="resizer"></div>
     <div id="output"></div>
     </div>
     <script src="script.js"></script>
