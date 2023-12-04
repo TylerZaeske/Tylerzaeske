@@ -1,7 +1,14 @@
 const presets = {
     "glow": "text-shadow: 0 0 5px currentColor;",
-    "large": "font-size: 20px;"
-    
+    "unglow": "text-shadow: none;",
+    "bold": "font-weight: bold;",
+    "italic": "font-style: italic;",
+    "underline": "text-decoration: underline;",
+    "strike": "text-decoration: line-through;",
+    "sup": "vertical-align: super; font-size: smaller;",
+    "sub": "vertical-align: sub; font-size: smaller;",
+    "small": "font-size: smaller;",
+    "large": "font-size: larger;",
 };
 
 window.onload = function() {
@@ -9,6 +16,8 @@ window.onload = function() {
     const filename = document.getElementById('filename');
 
     editor.addEventListener('input', function() {
+        // call Prism.highlightAll() from console to highlight the code
+        Prism.highlightAll();
         renderMarkup(editor.value);
         saveLocally();
     });
@@ -38,18 +47,19 @@ function downloadFile(url, fileName) {
       });
   };
 
-function renderMarkup(text) {
+  function renderMarkup(text) {
     const stack = [];
     let currentText = '';
     let html = '';
+    let globalStyles = '';
+    let inCodeBlock = false;
+    let codeBlockContent = '';
 
     function applyStyles(text) {
         if (stack.length === 0) return text;
 
         let style = stack.map(preset => {
-            // Check if the preset is a color code
             if (preset.startsWith('#')) {
-                // Check for background color code (##)
                 if (preset.startsWith('##')) {
                     return `background-color: ${preset.slice(1)};`;
                 }
@@ -61,56 +71,93 @@ function renderMarkup(text) {
         return `<span style="${style}">${text}</span>`;
     }
 
-    function isOnlyTag(line) {
-        return line.trim().startsWith('[') && line.trim().endsWith(']');
+    function applyGlobalStyles(tag) {
+        if (presets[tag]) {
+            globalStyles += presets[tag];
+        } else if (tag.startsWith('#')) {
+            if (tag.startsWith('##')) {
+                globalStyles += `background-color: ${tag.slice(1)}; `;
+            } else {
+                globalStyles += `color: ${tag}; `;
+            }
+        }
     }
 
     const lines = text.split('\n');
     lines.forEach((line, index) => {
-        let i = 0;
-        while (i < line.length) {
-            if (line[i] === '[') {
-                if (currentText) {
-                    html += applyStyles(currentText);
-                    currentText = '';
-                }
-
-                let j = i;
-                while (j < line.length && line[j] !== ']') {
-                    j++;
-                }
-
-                if (j === line.length) {
-                    currentText += line.slice(i);
-                    break;
-                }
-
-                const tag = line.slice(i + 1, j);
-                if (tag[0] !== '/') {
-                    stack.push(tag); // Push the tag (style or color code) onto the stack
-                } else {
-                    if (stack.length > 0) {
-                        stack.pop(); // Pop the tag (style or color code) from the stack
+        if (line.includes('[code]')) {
+            // Start of a code block
+            inCodeBlock = true;
+            codeBlockContent = ''; // Initialize an empty string to accumulate code block content
+            return; // Skip further processing of this line
+        } else if (line.includes('[/code]')) {
+            // End of a code block
+            inCodeBlock = false;
+            // Wrap the accumulated code block content in <pre><code> tags for syntax highlighting
+            html += `<pre><code class="language-js">${codeBlockContent}</code></pre>`;
+            codeBlockContent = ''; // Reset the code block content accumulator
+            return; // Skip further processing of this line
+        }
+    
+        if (inCodeBlock) {
+            // If we're inside a code block, accumulate the line into codeBlockContent
+            codeBlockContent += line + '\n';
+        } else {
+            // Regular text processing outside of code blocks
+            let i = 0;
+            while (i < line.length) {
+                if (line[i] === '[' || line[i] === '{') {
+                    const isGlobalTag = line[i] === '{';
+                    if (currentText) {
+                        html += applyStyles(currentText);
+                        currentText = '';
                     }
+    
+                    let j = i;
+                    while (j < line.length && line[j] !== (isGlobalTag ? '}' : ']')) {
+                        j++;
+                    }
+    
+                    if (j === line.length) {
+                        currentText += line.slice(i);
+                        break;
+                    }
+    
+                    const tag = line.slice(i + 1, j);
+                    if (isGlobalTag) {
+                        applyGlobalStyles(tag);
+                    } else {
+                        if (tag[0] !== '/') {
+                            stack.push(tag);
+                        } else {
+                            if (stack.length > 0) {
+                                stack.pop();
+                            }
+                        }
+                    }
+                    i = j;
+                } else {
+                    currentText += line[i];
                 }
-                i = j;
-            } else {
-                currentText += line[i];
+                i++;
             }
-            i++;
-        }
-
-        if (currentText) {
-            html += applyStyles(currentText);
-            currentText = '';
-        }
-
-        if (index < lines.length - 1) {  
-            html += '<br>';
+    
+            if (currentText) {
+                html += applyStyles(currentText);
+                currentText = '';
+            }
+    
+            // Add a line break after each line, except for the last one
+            if (index < lines.length - 1) {
+                html += '<br>';
+            }
         }
     });
 
-    document.getElementById('output').innerHTML = html;
+    const outputDiv = document.getElementById('output');
+    outputDiv.innerHTML = html;
+    outputDiv.style = globalStyles;
+    Prism.highlightAll();
 }
 
 function saveLocally() {
@@ -188,10 +235,10 @@ function findAndReplace() {
     const replaceText = document.getElementById('replaceInput').value;
     const editor = document.getElementById('editor');
 
-    if (!findText) {
-        alert("Please enter the text to find.");
-        return;
-    }
+    // if (!findText) {
+    //     alert("Please enter the text to find.");
+    //     return;
+    // }
 
     // Replace the text
     editor.value = editor.value.split(findText).join(replaceText);
@@ -219,11 +266,12 @@ window.onclick = function(event) {
     }
 }
 
-// Listen for Enter key
 document.addEventListener("keydown", function(event) {
     if (event.key === 'Enter') {
-        event.preventDefault();
-        findAndReplace();
+        if (modal.style.display === "block") {
+            event.preventDefault();
+            findAndReplace();
+        }
     }
 });
 
@@ -270,9 +318,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-let isResizing = false; // Define isResizing at the top level of your script
+// Define isResizing at the top level of your script
+let isResizing = false;
+
+// Attach mousedown event specifically to the resizer
+const resizer = document.getElementById('resizer');
+resizer.addEventListener('mousedown', function(e) {
+    isResizing = true;
+    document.body.classList.add('no-select');
+});
 
 document.addEventListener('mousemove', function(e) {
+    // Only execute if isResizing is true
     if (!isResizing) {
         return;
     }
@@ -283,26 +340,34 @@ document.addEventListener('mousemove', function(e) {
 
     // Check if the resizer is within 100px of either wall
     if (editorWidth < 100) {
-        // Make the output section fullscreen
         editor.style.width = '0px';
+        editor.style.display = "none";
         output.style.width = '100%';
-    } else if (outputWidth < 100) {
-        // Make the editor section fullscreen
-        editor.style.width = '100%';
-        output.style.width = '0px';
-    } else {
-        // Normal resizing
+        resizer.style.backgroundColor = "#ccc";
+    } else if (editorWidth > 100 && outputWidth > 100) {
         editor.style.width = editorWidth + 'px';
         output.style.width = (containerWidth - editor.offsetWidth - resizer.offsetWidth) + 'px';
+        editor.style.display = "block";
+        resizer.style.backgroundColor = "transparent";
+    }
+
+    if (outputWidth < 100) {
+        editor.style.width = '100%';
+        output.style.display = "none";
+        output.style.width = '0px';
+        resizer.style.backgroundColor = "#ccc";
+    } else if (outputWidth > 100 && editorWidth > 100) {
+        editor.style.width = editorWidth + 'px';
+        output.style.width = (containerWidth - editor.offsetWidth - resizer.offsetWidth) + 'px';
+        output.style.display = "block";
+        resizer.style.backgroundColor = "transparent";
     }
 });
 
-document.addEventListener('mousedown', function(e) {
-    isResizing = true;
-    document.body.classList.add('no-select');
-});
-
 document.addEventListener('mouseup', function(e) {
-    isResizing = false;
-    document.body.classList.remove('no-select');
+    // Only execute if isResizing is true
+    if (isResizing) {
+        isResizing = false;
+        document.body.classList.remove('no-select');
+    }
 });

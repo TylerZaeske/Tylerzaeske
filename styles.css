@@ -58,7 +58,7 @@ body {
 input[type='file'] {
     color: rgba(0, 0, 0, 0);
     position: absolute;
-    right: -150px;
+    right: -120px;
 }
 
 input[type='file']:focus {
@@ -96,11 +96,14 @@ div {
 }
 
 .modal-content {
-    background-color: #fefefe;
-    margin: 5% auto;
+    background-color: rgb(5, 5, 5);
+    margin: 0; /* Remove margin */
     padding: 20px;
     border: 1px solid #888;
-    width: 80%;
+    width: 20%; /* Adjust width to make the modal smaller */
+    position: fixed; /* Use fixed positioning to position relative to the viewport */
+    top: 30px; /* Align to the top of the viewport */
+    right: 30px; /* Align to the right of the viewport */
 }
 
 .close {
@@ -139,6 +142,7 @@ div {
     background-color: transparent;
     cursor: ew-resize;
     width: 10px;
+    margin-top:10px;
 }
 
 .no-select {
@@ -146,4 +150,34 @@ div {
     -moz-user-select: none;
     -webkit-user-select: none;
     -ms-user-select: none;
+}
+
+
+code {
+    color: transparent;
+}
+
+button, input[type='file']::file-selector-button {
+    background-color: rgb(50, 50, 50); /* Slightly lighter gray than the background for distinction */
+    color: rgb(255, 255, 255); /* White color for text */
+    border: 1px solid #ccc; /* Light gray border */
+    padding: 10px; /* Consistent padding with other elements */
+    margin: 5px; /* Sufficient margin for spacing */
+    font-size: 16px; /* Consistent font size with other elements */
+    font-family: monospace; /* Monospace font for consistency */
+    outline: none; /* Remove default focus outline */
+    cursor: pointer; /* Cursor changes to pointer to indicate it's clickable */
+    transition: background-color 0.3s; /* Smooth transition for hover effect */
+}
+
+button:hover, input[type='file']::file-selector-button:hover {
+    background-color: rgb(65, 65, 65); /* Slightly lighter gray on hover for visual feedback */
+}
+
+button:active, input[type='file']::file-selector-button:active {
+    background-color: rgb(30, 30, 30); /* Darker gray when button is clicked */
+}
+
+button:focus, input[type='file']::file-selector-button:focus {
+    border-color: #ddd; /* Slightly lighter border when focused */
 }
